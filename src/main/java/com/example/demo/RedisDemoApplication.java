@@ -12,7 +12,8 @@ public class RedisDemoApplication {
 		
 		RedisListCpt bean = run.getBean(RedisListCpt.class);
 		
-		bean.testMtrheadGet();
+//		bean.testMtrheadGet();
+		bean.testThreadGet();
 		
 		run.close();
 	}

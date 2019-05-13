@@ -7,6 +7,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.ListOperations;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -33,11 +34,11 @@ public class RedisListCpt {
 			this.rpush("value"+i);
 		}
 		
-		ExecutorService pool = Executors.newFixedThreadPool(20);
+		ExecutorService pool = Executors.newFixedThreadPool(8);
 		
 		AtomicInteger total = new AtomicInteger(0);
 		for (int i = 0; i < 10; i++) {
-			pool.submit(()->{
+			pool.execute(()->{
 				while(true) {
 					String v = this.get();
 					System.out.println(Thread.currentThread().getName() +": "+v + " total: "+ total.getAndIncrement());
@@ -48,4 +49,26 @@ public class RedisListCpt {
 			});
 		}
 	}
+	// 测试多线程中对一个key进行删除与获取
+	public void testThreadGet() {
+		ValueOperations<String, String> ops = template.opsForValue();
+		ExecutorService pool = Executors.newFixedThreadPool(2);
+		String key = "threadDelete";
+		pool.execute(()->{
+			ops.set(key, "0");
+			for (int i = 1; i < 600; i++) {
+				template.delete(key);
+				System.out.println(Thread.currentThread().getName() +" delete");
+				ops.set(key, ""+i);
+				System.out.println(Thread.currentThread().getName() +" set value: "+ i);
+			}
+		});
+		
+		pool.execute(()->{
+			for (int i = 0; i < 500; i++) {
+				System.out.println(Thread.currentThread().getName() +" get value: "+ ops.get(key));
+			}
+		});
+	}
+	
 }
